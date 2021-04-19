@@ -3,6 +3,10 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 
+//DEFINITIONS
+#define MAXRPM 7000
+#define MAXDUTY 85
+
 unsigned int pin_inj_1 = 1; // pin 2 to the injector n1
 unsigned int led_1 = 5;      // LED for the injector pulse
 const int analogPin = A0;    // For the potentiometer
@@ -20,7 +24,7 @@ LiquidCrystal_I2C lcd(0x3F,16,2);  //For my 12x2 LCD i2c screen
 
 void setup() {
   // VARS
-  int selector_value, hz_value=0, duty_cyle=0, rpm_engine;
+  int selector_value, hz_value=0, duty_cyle=0, rpm_engine, value, test_secs=0;
  
 
 
@@ -54,7 +58,20 @@ void setup() {
 }
 
 // ------------------------------------------------------------------
+// This function changes to false if the parameter is true
+boolean change_to_false(boolean var){
+    if(var == true){
+      return false;
+      }
+  }
 
+
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+
+
+// managed by the interruption,
 void add_next_button(){
     selector_menu++;
     // if =6 then 0
@@ -175,13 +192,27 @@ int show_cycle(int duty_cycle){
   lcd.setCursor(6, 0);
   lcd.print("%");
   }
+// ------------------------------------------------------------------
+
+void wait_ms(int ms){
+  int micros_wait, micros_init, micros_end;
+
+  micros_wait = ms*1000;
+  micros_init = micros();
+  micros_end = micros_init+micros_wait;
+  do{
+    }while( micros() < (micros_end) );
+    
+  
+  }
 
 // ------------------------------------------------------------------
 void test(int secs, int hz, int rpm, int dc){
   unsigned long time_star, time_end;
-  int ms;
+  int ms,ms_low;
 
   ms = (1/hz*1000) * (dc/100);
+  ms_low= (1/hz*1000) -ms;
   clear();
   lcd.setCursor(0, 0);
   lcd.print("RUNING TEST");
@@ -198,6 +229,8 @@ void test(int secs, int hz, int rpm, int dc){
       }
       //Do a pulse of ms milisends in the pin 1
       do_pulse(ms, 1);
+      // and wait ms_low ms to the next pulse
+      wait_ms(ms_low);
     
     }
     while((start) && (micros() < time_end))
@@ -210,9 +243,9 @@ int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
   clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
-    screen1(start, hz_value, rpm_engine, duty_cycle);
-    delay(2000);
-    test(0, hz_value, rpm_engine, duty_cycle)
+    //screen1(start, hz_value, rpm_engine, duty_cycle);
+    delay(1000);
+    test(0, hz_value, rpm_engine, duty_cycle);
   }else{
     // Show the info of the test
     lcd.setCursor(0, 0);
@@ -226,7 +259,7 @@ int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
   clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
-    screen1(start, hz_value, rpm_engine, duty_cycle);
+    //screen1(start, hz_value, rpm_engine, duty_cycle);
   }else{
     // Show the info of the test
     lcd.setCursor(0, 0);
@@ -236,15 +269,17 @@ int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
 
 // ------------------------------------------------------------------
 
-int run_test_30(int start, int hz_value, int rpm_engine, int duty_cycle){
+int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int secs){
   clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
-    screen1(start, hz_value, rpm_engine, duty_cycle);
+    //screen1(start, hz_value, rpm_engine, duty_cycle);
   }else{
     // Show the info of the test
     lcd.setCursor(0, 0);
-    lcd.print("RUN 30s TEST");
+    lcd.print("RUN ");
+    lcd.print(secs);
+    lcd.print("s TEST");
     }
   }
 
@@ -262,24 +297,50 @@ void loop() {
       screen1(start, hz_value, rpm_engine, duty_cycle);
    
     case 1:
+      //Read the input
+      value = analogRead(analogPin); 
+      hz_value = map(value, 0, 1023, 0, (MAX_RPM/60));
       // We call the function 
       show_hz(hz_value, rpm_engine);
     case 2:
+      // Read the input 
+      value = analogRead(analogPin); 
+      duty_cycle = map(value, 0, 1023, 0, MAX_DUTY);
       // We call the function 
       show_cycle(duty_cycle);
     case 3:
+      
       // We call the function 
       run_test(start, hz_value, rpm_engine, duty_cycle);
     case 4:
+      // Call the function
       run_test_10(start, hz_value, rpm_engine, duty_cycle);
     case 5:
-      run_test_30(start, hz_value, rpm_engine, duty_cycle);
+      //Read the input
+      value = analogRead(analogPin); 
+      test_secs = map(value, 0, 1023, 0, 120);
+      // Call the function
+      run_test_secs(start, hz_value, rpm_engine, duty_cycle, test_secs);
   }
+
+  start=change_to_false(start);
 
 
   if( (selector_menu == 3) && (start == true) ){
-    
+    run_test(start, hz_value, rpm_engine, duty_cycle)
     }
-  
+    
+  start=change_to_false(start);
+
+  if( (selector_menu == 4) && (start == true) ){
+    run_test_10(start, hz_value, rpm_engine, duty_cycle)
+    }
+
+  start=change_to_false(start);
+
+  if( (selector_menu == 5) && (start == true) ){
+    run_test(start, hz_value, rpm_engine, duty_cycle)
+    }
+  start=change_to_false(start);
 
 }
