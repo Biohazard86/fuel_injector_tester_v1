@@ -74,7 +74,7 @@ boolean change_to_false(boolean var){
 // managed by the interruption,
 void add_next_button(){
     selector_menu++;
-    // if =6 then 0
+    // if =6 then 0 to can manage the menu
     if(selector_menu == 6){
       selector_menu = 0;
       }
@@ -82,8 +82,7 @@ void add_next_button(){
 
 
 // ------------------------------------------------------------------
-
-
+// To controll the ok button
 void add_ok_button(){
   // only changes the boolean
     if(start == true){
@@ -96,22 +95,22 @@ void add_ok_button(){
 
 
 // ------------------------------------------------------------------
-
+// this function generates a pulse. Recive the miliseconds of the duration and the pin trow th pulse has to be send
 
 void do_pulse(int ms_pulse, int pin){
 
-  unsigned int micros1, micros_pulse;
+  unsigned int micros_init, micros_pulse_duration;
 
-  micros_pulse = ms_pulse*1000; // When the end of the pulse has to happen in microseconds
+  micros_pulse_duration = ms_pulse*1000; //Convert the miliseconds to microseconds
 
   // Put on the injector
   pinMode(pin, HIGH);
   // Read the micros of the MCU
-  micros1 = micros();
+  micros_init = micros();
   
   do{
     // dont do anything until the pulse duration passed
-  }while( micros() < (micros1+micros_pulse ) );
+  }while( micros() < (micros_init + micros_pulse_duration ) );
   //Then turn off the injector
   pinMode(pin, LOW);
   
@@ -119,7 +118,7 @@ void do_pulse(int ms_pulse, int pin){
 
 
 // ------------------------------------------------------------------
-
+// This function converts the hz selected to RPM to can know the "real" RPMs of the engine.
 int hz_to_rpm(hz_value){
   int rpm;
 
@@ -132,7 +131,8 @@ int hz_to_rpm(hz_value){
 
   
 // ------------------------------------------------------------------
-
+// This shows the main screen of the program
+// All data are showed
 int screen1(int start, int hz_value, int rpm_engine, int duty_cycle){
   clear();
   // 1st line
@@ -156,7 +156,7 @@ int screen1(int start, int hz_value, int rpm_engine, int duty_cycle){
   }
 
 // ------------------------------------------------------------------
-
+// This function shows the HZ selected. You can choose another value
 int showhz(int hz_value){
   clear();
   // 1st line
@@ -180,7 +180,7 @@ int showhz(int hz_value){
   }
 
 // ------------------------------------------------------------------
-
+// This function shows the duty cycle you select. You can change it
 int show_cycle(int duty_cycle){
   clear();
   // 1st line
@@ -193,26 +193,30 @@ int show_cycle(int duty_cycle){
   lcd.print("%");
   }
 // ------------------------------------------------------------------
-
+// This function wait ms ms that you pass as an argumen
 void wait_ms(int ms){
   int micros_wait, micros_init, micros_end;
 
-  micros_wait = ms*1000;
-  micros_init = micros();
-  micros_end = micros_init+micros_wait;
+  micros_wait = ms*1000;   //miliseconds to microseconds
+  micros_init = micros();  // Read the microseconds from the MCU
+  micros_end = micros_init+micros_wait; //Calculate when the end is
   do{
+    // Do nothing untill the time has passed
     }while( micros() < (micros_end) );
     
   
   }
 
 // ------------------------------------------------------------------
+// Function to test x secs the injectors
+// calculate the high and low times per siganl and sends to the functions
 void test(int secs, int hz, int rpm, int dc){
   unsigned long time_star, time_end;
   int ms,ms_low;
 
-  ms = (1/hz*1000) * (dc/100);
-  ms_low= (1/hz*1000) -ms;
+  
+  ms = (1/hz*1000) * (dc/100);  //miliseconds with the duty cycle correction (High signal)
+  ms_low= (1/hz*1000) -ms;      //miliseconds of the low signal of the cycle
   clear();
   lcd.setCursor(0, 0);
   lcd.print("RUNING TEST");
@@ -221,9 +225,10 @@ void test(int secs, int hz, int rpm, int dc){
   lcd.setCursor(3, 1);
   lcd.print("SECS");
   
-  time_start = micros();
-  time_end = time_star + (secs * 1000000);
+  time_start = micros();    // read the microseconds from the MCU
+  time_end = time_star + (secs * 1000000);    // calc all the time of the test
   do{
+    // if the time is 0 that is that is an infinite test
     if(secs == 0){
         time_end = (micros() +100000);
       }
@@ -238,7 +243,7 @@ void test(int secs, int hz, int rpm, int dc){
 
 
 // ------------------------------------------------------------------
-
+// This function is to run an infinite test
 int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
   clear();
   // if the test is running we show the info of the main menu
@@ -254,12 +259,14 @@ int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
   }
 
 // ------------------------------------------------------------------
-
+// this is to run a 10 secs test
 int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
   clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
     //screen1(start, hz_value, rpm_engine, duty_cycle);
+    delay(1000);
+    test(10, hz_value, rpm_engine, duty_cycle);
   }else{
     // Show the info of the test
     lcd.setCursor(0, 0);
@@ -268,12 +275,14 @@ int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
   }
 
 // ------------------------------------------------------------------
-
+// THis runs a X secs test
 int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int secs){
   clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
     //screen1(start, hz_value, rpm_engine, duty_cycle);
+    delay(1000);
+    test(secs, hz_value, rpm_engine, duty_cycle);
   }else{
     // Show the info of the test
     lcd.setCursor(0, 0);
@@ -284,6 +293,8 @@ int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int s
   }
 
 // ------------------------------------------------------------------
+//The loop function
+
 void loop() {
   
 
