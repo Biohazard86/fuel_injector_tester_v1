@@ -21,6 +21,17 @@ void setup() {
   pinMode(led_1, OUTPUT);
   digitalWrite(led_1, LOW);
 
+  //Inicializate the LCD
+  lcd.init();
+  // Turn on the backligth screen
+  lcd.backlight();
+  // Print in the Screen:
+  lcd.setCursor(4, 0);
+  lcd.print("Biohazard86");
+  lcd.setCursor(2, 1);
+  lcd.print("Injector tester");
+  delay(3000);  //Sleep 3 secs
+  clear();
 
 }
 
