@@ -4,8 +4,8 @@
 #include <LiquidCrystal_I2C.h>
 
 //DEFINITIONS
-#define MAXRPM 7000
-#define MAXDUTY 85
+#define MAX_RPM 7000
+#define MAX_DUTY 85
 
 unsigned int pin_inj_1 = 1; // pin 2 to the injector n1
 unsigned int led_1 = 5;      // LED for the injector pulse
@@ -16,6 +16,7 @@ const int ok_button = 3;      // For the ok button
 //VARS
  int selector_menu=0;
  boolean start = false;
+ int selector_value, hz_value, duty_cycle, rpm_engine, value, test_secs;
 
 // i2c LCD
 LiquidCrystal_I2C lcd(0x3F,16,2);  //For my 12x2 LCD i2c screen
@@ -24,7 +25,7 @@ LiquidCrystal_I2C lcd(0x3F,16,2);  //For my 12x2 LCD i2c screen
 
 void setup() {
   // VARS
-  int selector_value, hz_value=0, duty_cyle=0, rpm_engine, value, test_secs=0;
+  
  
 
 
@@ -40,8 +41,8 @@ void setup() {
   pinMode(next_button, INPUT);
   pinMode(ok_button, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(next_button), add_next_button(), RISING);
-  attachInterrupt(digitalPinToInterrupt(ok_button), add_ok_button(), RISING);
+  attachInterrupt(digitalPinToInterrupt(next_button), add_next_button, RISING);
+  attachInterrupt(digitalPinToInterrupt(ok_button), add_ok_button, RISING);
 
   //Inicializate the LCD
   lcd.init();
@@ -53,8 +54,8 @@ void setup() {
   lcd.setCursor(2, 1);
   lcd.print("Injector tester");
   delay(3000);  //Sleep 3 secs
-  clear();
-
+  
+  lcd.clear();
 }
 
 // ------------------------------------------------------------------
@@ -119,7 +120,7 @@ void do_pulse(int ms_pulse, int pin){
 
 // ------------------------------------------------------------------
 // This function converts the hz selected to RPM to can know the "real" RPMs of the engine.
-int hz_to_rpm(hz_value){
+int hz_to_rpm_conversion(){
   int rpm;
 
   // HZ = pulses per sec
@@ -134,7 +135,7 @@ int hz_to_rpm(hz_value){
 // This shows the main screen of the program
 // All data are showed
 int screen1(int start, int hz_value, int rpm_engine, int duty_cycle){
-  clear();
+  lcd.clear();
   // 1st line
   lcd.setCursor(0, 0);
   lcd.print("HZ");
@@ -157,8 +158,8 @@ int screen1(int start, int hz_value, int rpm_engine, int duty_cycle){
 
 // ------------------------------------------------------------------
 // This function shows the HZ selected. You can choose another value
-int showhz(int hz_value){
-  clear();
+int show_hz(){
+  lcd.clear();
   // 1st line
   lcd.setCursor(0, 0);
   lcd.print("HZ");
@@ -182,7 +183,7 @@ int showhz(int hz_value){
 // ------------------------------------------------------------------
 // This function shows the duty cycle you select. You can change it
 int show_cycle(int duty_cycle){
-  clear();
+  lcd.clear();
   // 1st line
   lcd.setCursor(2, 0);
   lcd.print("DUTY CYCLE");
@@ -211,13 +212,13 @@ void wait_ms(int ms){
 // Function to test x secs the injectors
 // calculate the high and low times per siganl and sends to the functions
 void test(int secs, int hz, int rpm, int dc){
-  unsigned long time_star, time_end;
+  unsigned long time_start, time_end;
   int ms,ms_low;
 
   
   ms = (1/hz*1000) * (dc/100);  //miliseconds with the duty cycle correction (High signal)
   ms_low= (1/hz*1000) -ms;      //miliseconds of the low signal of the cycle
-  clear();
+ lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("RUNING TEST");
   lcd.setCursor(0, 1);
@@ -226,7 +227,7 @@ void test(int secs, int hz, int rpm, int dc){
   lcd.print("SECS");
   
   time_start = micros();    // read the microseconds from the MCU
-  time_end = time_star + (secs * 1000000);    // calc all the time of the test
+  time_end = time_start + (secs * 1000000);    // calc all the time of the test
   do{
     // if the time is 0 that is that is an infinite test
     if(secs == 0){
@@ -238,14 +239,14 @@ void test(int secs, int hz, int rpm, int dc){
       wait_ms(ms_low);
     
     }
-    while((start) && (micros() < time_end))
+    while((start) && (micros() < time_end));
   }
 
 
 // ------------------------------------------------------------------
 // This function is to run an infinite test
 int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
-  clear();
+  lcd.clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
     //screen1(start, hz_value, rpm_engine, duty_cycle);
@@ -261,7 +262,7 @@ int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
 // ------------------------------------------------------------------
 // this is to run a 10 secs test
 int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
-  clear();
+  lcd.clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
     //screen1(start, hz_value, rpm_engine, duty_cycle);
@@ -277,7 +278,7 @@ int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
 // ------------------------------------------------------------------
 // THis runs a X secs test
 int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int secs){
-  clear();
+  lcd.clear();
   // if the test is running we show the info of the main menu
   if(start == 1){
     //screen1(start, hz_value, rpm_engine, duty_cycle);
@@ -299,7 +300,7 @@ void loop() {
   
 
   // calculate the rpm trow the hz
-  rpm_engine = hz_to_rpm(hz_value);
+  rpm_engine = hz_to_rpm_conversion();
 
   // Shows menu in the screen
   switch(selector_menu){
@@ -312,7 +313,7 @@ void loop() {
       value = analogRead(analogPin); 
       hz_value = map(value, 0, 1023, 0, (MAX_RPM/60));
       // We call the function 
-      show_hz(hz_value, rpm_engine);
+      show_hz();
     case 2:
       // Read the input 
       value = analogRead(analogPin); 
@@ -338,19 +339,19 @@ void loop() {
 
 
   if( (selector_menu == 3) && (start == true) ){
-    run_test(start, hz_value, rpm_engine, duty_cycle)
+    run_test(start, hz_value, rpm_engine, duty_cycle);
     }
     
   start=change_to_false(start);
 
   if( (selector_menu == 4) && (start == true) ){
-    run_test_10(start, hz_value, rpm_engine, duty_cycle)
+    run_test_10(start, hz_value, rpm_engine, duty_cycle);
     }
 
   start=change_to_false(start);
 
   if( (selector_menu == 5) && (start == true) ){
-    run_test(start, hz_value, rpm_engine, duty_cycle)
+    run_test(start, hz_value, rpm_engine, duty_cycle);
     }
   start=change_to_false(start);
 
