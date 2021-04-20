@@ -7,8 +7,8 @@
 #define MAX_RPM 7000
 #define MAX_DUTY 85
 
-unsigned int pin_inj_1 = 1; // pin 2 to the injector n1
-unsigned int led_1 = 5;      // LED for the injector pulse
+unsigned int pin_output = 5; // pin 5 to the injector n1
+unsigned int led_1 = 6;      // LED for the injector pulse
 const int analogPin = A0;    // For the potentiometer
 const int next_button = 2;    // For the next button
 const int ok_button = 3;      // For the ok button
@@ -44,8 +44,8 @@ void setup() {
   //CODE
   Serial.begin(9600); // open the serial port at 9600 bps:
   
-  pinMode(pin_inj_1, OUTPUT);    // pin 2 as an output
-  digitalWrite(pin_inj_1, LOW);
+  pinMode(pin_output, OUTPUT);    // pin 2 as an output
+  digitalWrite(pin_output, LOW);
 
   pinMode(led_1, OUTPUT);
   digitalWrite(led_1, LOW);
@@ -122,16 +122,18 @@ void do_pulse(int ms_pulse, int pin){
   micros_init = micros();
   
   //Serial.print("\nMS\n");
-  //Serial.print(ms_pulse);
+ // Serial.print(ms_pulse);
   //Serial.print("\nDURACION PULSO\n");
   //Serial.print(micros_pulse_duration); 
-  
+  //Serial.print("\nGO PULSE\n");
   do{
     // dont do anything until the pulse duration passed
-    i=0;
-  }while( micros() < (micros_init + micros_pulse_duration ) );
+    i=micros();
+  }while( i < (micros_init + micros_pulse_duration ) );
   //Then turn off the injector
   pinMode(pin, LOW);
+
+  //Serial.print("\nEXIT PULSE\n");
   
   }
 
@@ -213,15 +215,31 @@ int show_cycle(int duty_cycle){
   }
 // ------------------------------------------------------------------
 // This function wait ms ms that you pass as an argumen
-void wait_ms(int ms){
-  int micros_wait, micros_init, micros_end;
+void wait_ms(long int us_wait){
+  
+  long int micros_wait;
+  long int micros_init, micros_end;
+  long int i;
 
-  micros_wait = ms*1000;   //miliseconds to microseconds
+  
+
+  //micros_wait = ms * 1000;   //miliseconds to microseconds
   micros_init = micros();  // Read the microseconds from the MCU
-  micros_end = micros_init+micros_wait; //Calculate when the end is
-  do{
-    // Do nothing untill the time has passed
-    }while( micros() < (micros_end) );
+  micros_end = micros_init + us_wait; //Calculate when the end is
+  Serial.print("\n US\n");
+  Serial.print(us_wait);
+  Serial.print("\nMicros END\n");
+  Serial.print(micros_end);
+  Serial.print("\nMicros INIT\n");
+  Serial.print(micros_init);
+
+    Serial.print("\nGO WAIT\n");
+    do{
+      i = micros();
+    }while( i < micros_end );
+    //delay(ms);
+    //delayMicroseconds(micros_wait);
+    Serial.print("\nEXIT WAIT\n");
     
   
   }
@@ -232,24 +250,26 @@ void wait_ms(int ms){
 void test(int secs, int hz, int rpm, int dc){
   unsigned long time_start_test, time_end;
   double ms;
-  float ms_high, ms_low;
-
+  int ms_high, ms_low;
+  long int send_us;
   
   ms_high = (pow(hz, -1)*dc) * 10;  //miliseconds with the duty cycle correction (High signal)
   ms_low= ((pow(hz, -1)*1000) - ms_high);      //miliseconds of the low signal of the cycle
+  send_us = long(ms_low) * 1000;
   
-  Serial.print("\nHZ\n");
-  Serial.print(hz);
-  Serial.print("\nDC\n");
-  Serial.print(dc);
+  //Serial.print("\nHZ\n");
+  //Serial.print(hz);
+  //Serial.print("\nDC\n");
+  //Serial.print(dc);
 
-  Serial.print("\nPOW\n");
-  Serial.print((pow(hz, -1)*1000));
-  
-  Serial.print("\nMS\n");
-  Serial.print(ms_high);
-  Serial.print("\nMS_LOW\n");
-  Serial.print(ms_low);
+  //Serial.print("\nPOW\n");
+  //Serial.print((pow(hz, -1)*1000));
+  //Serial.print("\nSEND US \n");
+  //Serial.print(send_us);
+  //Serial.print("\nMS\n");
+  //Serial.print(ms_high);
+  //Serial.print("\nMS_LOW\n");
+  //Serial.print(ms_low);
   
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -266,16 +286,20 @@ void test(int secs, int hz, int rpm, int dc){
   //Serial.print(time_start_test);
   //Serial.print("TIME END\n");
   //Serial.print(time_end); 
+  //lcd.clear();
+  
   
   do{
     // if the time is 0 that is that is an infinite test
-    if(secs == 0){
-      time_end = (micros() +1000);
-    }
+    //if(secs == 0){
+    //  time_end = (micros() +1000);
+    //}
       //Do a pulse of ms milisends in the pin 1
       do_pulse(ms_high, 1);
         // and wait ms_low ms to the next pulse
-        wait_ms(ms_low);
+      wait_ms(send_us);
+      
+      
     }
     while( (micros() < time_end ));
     lcd.clear();
