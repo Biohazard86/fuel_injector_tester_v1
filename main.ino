@@ -110,30 +110,33 @@ void add_ok_button(){
 // ------------------------------------------------------------------
 // this function generates a pulse. Recive the miliseconds of the duration and the pin trow th pulse has to be send
 
-void do_pulse(int ms_pulse, int pin){
-  int i;
-  int micros_init, micros_pulse_duration;
-
-  micros_pulse_duration = ms_pulse*1000; //Convert the miliseconds to microseconds
-
-  // Put on the injector
-  pinMode(pin, HIGH);
-  // Read the micros of the MCU
-  micros_init = micros();
+void do_pulse(long int us_wait){
   
-  //Serial.print("\nMS\n");
- // Serial.print(ms_pulse);
-  //Serial.print("\nDURACION PULSO\n");
-  //Serial.print(micros_pulse_duration); 
-  //Serial.print("\nGO PULSE\n");
-  do{
-    // dont do anything until the pulse duration passed
-    i=micros();
-  }while( i < (micros_init + micros_pulse_duration ) );
-  //Then turn off the injector
-  pinMode(pin, LOW);
+  long int micros_wait;
+  long int micros_init, micros_end;
+  long int i;
 
-  //Serial.print("\nEXIT PULSE\n");
+  
+
+  //micros_wait = ms * 1000;   //miliseconds to microseconds
+  micros_init = micros();  // Read the microseconds from the MCU
+  micros_end = micros_init + us_wait; //Calculate when the end is
+    Serial.print("\n US\n");
+    Serial.print(us_wait);
+    Serial.print("\nMicros END\n");
+    Serial.print(micros_end);
+    Serial.print("\nMicros INIT\n");
+    Serial.print(micros_init);
+
+    pinMode(pin_output, HIGH);
+    Serial.print("\nGO HIGH\n");
+    do{
+      i = micros();
+    }while( i < micros_end );
+    pinMode(pin_output, LOW);
+    Serial.print("\nEXIT HIGH\n");
+    
+    
   
   }
 
@@ -251,11 +254,12 @@ void test(int secs, int hz, int rpm, int dc){
   unsigned long time_start_test, time_end;
   double ms;
   int ms_high, ms_low;
-  long int send_us;
+  long int send_us_low,send_us_high;
   
   ms_high = (pow(hz, -1)*dc) * 10;  //miliseconds with the duty cycle correction (High signal)
   ms_low= ((pow(hz, -1)*1000) - ms_high);      //miliseconds of the low signal of the cycle
-  send_us = long(ms_low) * 1000;
+  send_us_high = long(ms_high) * 1000;
+  send_us_low = long(ms_low) * 1000;
   
   //Serial.print("\nHZ\n");
   //Serial.print(hz);
@@ -265,7 +269,7 @@ void test(int secs, int hz, int rpm, int dc){
   //Serial.print("\nPOW\n");
   //Serial.print((pow(hz, -1)*1000));
   //Serial.print("\nSEND US \n");
-  //Serial.print(send_us);
+  //Serial.print(send_us_low);
   //Serial.print("\nMS\n");
   //Serial.print(ms_high);
   //Serial.print("\nMS_LOW\n");
@@ -295,9 +299,9 @@ void test(int secs, int hz, int rpm, int dc){
     //  time_end = (micros() +1000);
     //}
       //Do a pulse of ms milisends in the pin 1
-      do_pulse(ms_high, 1);
+      do_pulse(send_us_high);
         // and wait ms_low ms to the next pulse
-      wait_ms(send_us);
+      wait_ms(send_us_low);
       
       
     }
