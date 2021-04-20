@@ -15,8 +15,20 @@ const int ok_button = 3;      // For the ok button
 
 //VARS
  int selector_menu=0;
- boolean start = false;
+ boolean start_test = false;
  int selector_value, hz_value, duty_cycle, rpm_engine, value, test_secs;
+
+ //CUSTOM CHARACTERS
+ byte selected_option[] = {
+  B11000,
+  B11100,
+  B11110,
+  B11111,
+  B11110,
+  B11100,
+  B11000,
+  B10000
+ } ;
 
 // i2c LCD
 LiquidCrystal_I2C lcd(0x3F,16,2);  //For my 12x2 LCD i2c screen
@@ -53,8 +65,8 @@ void setup() {
   lcd.print("Biohazard86");
   lcd.setCursor(0, 1);
   lcd.print("Injector tester");
-  delay(3000);  //Sleep 3 secs
-  
+  delay(2500);  //Sleep 3 secs
+  lcd.createChar(0,selected_option);
   lcd.clear();
 }
 
@@ -86,11 +98,11 @@ void add_next_button(){
 // To controll the ok button
 void add_ok_button(){
   // only changes the boolean
-    if(start == true){
-      start = false;
+    if(start_test == true){
+      start_test = false;
     }
-    if(start == false){
-      start = true;  
+    if(start_test == false){
+      start_test = true;  
     }
   }
 
@@ -99,8 +111,8 @@ void add_ok_button(){
 // this function generates a pulse. Recive the miliseconds of the duration and the pin trow th pulse has to be send
 
 void do_pulse(int ms_pulse, int pin){
-
-  unsigned int micros_init, micros_pulse_duration;
+  int i;
+  int micros_init, micros_pulse_duration;
 
   micros_pulse_duration = ms_pulse*1000; //Convert the miliseconds to microseconds
 
@@ -109,8 +121,14 @@ void do_pulse(int ms_pulse, int pin){
   // Read the micros of the MCU
   micros_init = micros();
   
+  //Serial.print("\nMS\n");
+  //Serial.print(ms_pulse);
+  //Serial.print("\nDURACION PULSO\n");
+  //Serial.print(micros_pulse_duration); 
+  
   do{
     // dont do anything until the pulse duration passed
+    i=0;
   }while( micros() < (micros_init + micros_pulse_duration ) );
   //Then turn off the injector
   pinMode(pin, LOW);
@@ -134,7 +152,7 @@ int hz_to_rpm_conversion(){
 // ------------------------------------------------------------------
 // This shows the main screen of the program
 // All data are showed
-int screen1(int start, int hz_value, int rpm_engine, int duty_cycle){
+int screen1(int start_test, int hz_value, int rpm_engine, int duty_cycle){
   lcd.clear();
   // 1st line
   lcd.setCursor(0, 0);
@@ -212,13 +230,28 @@ void wait_ms(int ms){
 // Function to test x secs the injectors
 // calculate the high and low times per siganl and sends to the functions
 void test(int secs, int hz, int rpm, int dc){
-  unsigned long time_start, time_end;
-  int ms,ms_low;
+  unsigned long time_start_test, time_end;
+  double ms;
+  float ms_high, ms_low;
 
   
-  ms = (1/hz*1000) * (dc/100);  //miliseconds with the duty cycle correction (High signal)
-  ms_low= (1/hz*1000) -ms;      //miliseconds of the low signal of the cycle
- lcd.clear();
+  ms_high = (pow(hz, -1)*dc) * 10;  //miliseconds with the duty cycle correction (High signal)
+  ms_low= ((pow(hz, -1)*1000) - ms_high);      //miliseconds of the low signal of the cycle
+  
+  Serial.print("\nHZ\n");
+  Serial.print(hz);
+  Serial.print("\nDC\n");
+  Serial.print(dc);
+
+  Serial.print("\nPOW\n");
+  Serial.print((pow(hz, -1)*1000));
+  
+  Serial.print("\nMS\n");
+  Serial.print(ms_high);
+  Serial.print("\nMS_LOW\n");
+  Serial.print(ms_low);
+  
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("RUNING TEST");
   lcd.setCursor(0, 1);
@@ -226,30 +259,36 @@ void test(int secs, int hz, int rpm, int dc){
   lcd.setCursor(3, 1);
   lcd.print("SECS");
   
-  time_start = micros();    // read the microseconds from the MCU
-  time_end = time_start + (secs * 1000000);    // calc all the time of the test
+  time_start_test = micros();    // read the microseconds from the MCU
+  time_end = time_start_test + (secs * 1000000);    // calc all the time of the test
+
+  //Serial.print("TIME START\n");
+  //Serial.print(time_start_test);
+  //Serial.print("TIME END\n");
+  //Serial.print(time_end); 
+  
   do{
     // if the time is 0 that is that is an infinite test
     if(secs == 0){
-        time_end = (micros() +100000);
-      }
-      //Do a pulse of ms milisends in the pin 1
-      do_pulse(ms, 1);
-      // and wait ms_low ms to the next pulse
-      wait_ms(ms_low);
-    
+      time_end = (micros() +1000);
     }
-    while((start) && (micros() < time_end));
+      //Do a pulse of ms milisends in the pin 1
+      do_pulse(ms_high, 1);
+        // and wait ms_low ms to the next pulse
+        wait_ms(ms_low);
+    }
+    while( (micros() < time_end ));
+    lcd.clear();
   }
 
 
 // ------------------------------------------------------------------
 // This function is to run an infinite test
-int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
+int run_test(int start_test, int hz_value, int rpm_engine, int duty_cycle){
   lcd.clear();
   // if the test is running we show the info of the main menu
-  if(start == 1){
-    //screen1(start, hz_value, rpm_engine, duty_cycle);
+  if(start_test == 1){
+    //screen1(start_test, hz_value, rpm_engine, duty_cycle);
     delay(1000);
     test(0, hz_value, rpm_engine, duty_cycle);
   }else{
@@ -261,11 +300,11 @@ int run_test(int start, int hz_value, int rpm_engine, int duty_cycle){
 
 // ------------------------------------------------------------------
 // this is to run a 10 secs test
-int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
+int run_test_10(int start_test, int hz_value, int rpm_engine, int duty_cycle){
   lcd.clear();
   // if the test is running we show the info of the main menu
-  if(start == 1){
-    //screen1(start, hz_value, rpm_engine, duty_cycle);
+  if(start_test == 1){
+    //screen1(start_test, hz_value, rpm_engine, duty_cycle);
     delay(1000);
     test(10, hz_value, rpm_engine, duty_cycle);
   }else{
@@ -277,11 +316,11 @@ int run_test_10(int start, int hz_value, int rpm_engine, int duty_cycle){
 
 // ------------------------------------------------------------------
 // THis runs a X secs test
-int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int secs){
+int run_test_secs(int start_test, int hz_value, int rpm_engine, int duty_cycle, int secs){
   lcd.clear();
   // if the test is running we show the info of the main menu
-  if(start == 1){
-    //screen1(start, hz_value, rpm_engine, duty_cycle);
+  if(start_test == 1){
+    //screen1(start_test, hz_value, rpm_engine, duty_cycle);
     delay(1000);
     test(secs, hz_value, rpm_engine, duty_cycle);
   }else{
@@ -295,99 +334,161 @@ int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int s
 
 // ------------------------------------------------------------------
 void show_menu(){
-  lcd.setCursor(0, 0);
-  lcd.print("HZ " + hz_value);
+  lcd.setCursor(1, 0);
+  lcd.print("HZ ");
+  lcd.setCursor(4, 0);
+  lcd.print(hz_value);
   
+  lcd.setCursor(10, 0);
+  lcd.print("DC");
+  lcd.setCursor(13, 0);
+  lcd.print(duty_cycle);
+  lcd.setCursor(15, 0);
+  lcd.print("%");
+  //-------------------
+  lcd.setCursor(1, 1);
+  lcd.print("T ");
+  lcd.setCursor(3, 1);
+  lcd.print(test_secs);
+  lcd.setCursor(5, 1);
+  lcd.print("s");
+  
+  lcd.setCursor(11, 1);
+  lcd.print("OK");
   }
 
 // ------------------------------------------------------------------
-//The loop function
-/*
+
 void loop() {
+  int i;
   
-
-  // calculate the rpm trow the hz
-  rpm_engine = hz_to_rpm_conversion();
-
-  // Shows menu in the screen
-  switch(selector_menu){
-    case 0:
-      // We call the function 
-      screen1(start, hz_value, rpm_engine, duty_cycle);
-   
-    case 1:
-      //Read the input
-      value = analogRead(analogPin); 
-      hz_value = map(value, 0, 1023, 0, (MAX_RPM/60));
-      // We call the function 
-      show_hz();
-    case 2:
-      // Read the input 
-      value = analogRead(analogPin); 
-      duty_cycle = map(value, 0, 1023, 0, MAX_DUTY);
-      // We call the function 
-      show_cycle(duty_cycle);
-    case 3:
-      
-      // We call the function 
-      run_test(start, hz_value, rpm_engine, duty_cycle);
-    case 4:
-      // Call the function
-      run_test_10(start, hz_value, rpm_engine, duty_cycle);
-    case 5:
-      //Read the input
-      value = analogRead(analogPin); 
-      test_secs = map(value, 0, 1023, 0, 120);
-      // Call the function
-      run_test_secs(start, hz_value, rpm_engine, duty_cycle, test_secs);
-  }
-
-  start=change_to_false(start);
-
-
-  if( (selector_menu == 3) && (start == true) ){
-    run_test(start, hz_value, rpm_engine, duty_cycle);
-    }
-    
-  start=change_to_false(start);
-
-  if( (selector_menu == 4) && (start == true) ){
-    run_test_10(start, hz_value, rpm_engine, duty_cycle);
-    }
-
-  start=change_to_false(start);
-
-  if( (selector_menu == 5) && (start == true) ){
-    run_test(start, hz_value, rpm_engine, duty_cycle);
-    }
-  start=change_to_false(start);
-
-}
-
-*/
-
-
-void loop() {
   rpm_engine = hz_to_rpm_conversion();
   show_menu();
 
   if(digitalRead(next_button) == HIGH){
     selector_menu++;
+    delay(250);
     }
 
-    if(selector_menu == 3){
+    if(selector_menu == 4){
       selector_menu = 0;
       }
-
+//----------------------------------------
    if(selector_menu == 0){
       value = analogRead(analogPin); 
-      hz_value = map(value, 0, 1023, 0, (MAX_RPM/60));
+      hz_value = map(value, 100, 1023, 0, 71);  // (MAX_RPM/60)
+      if(hz_value < 10){
+        lcd.setCursor(5, 0);
+        lcd.print(" ");
+        }
+      if(hz_value < 0){
+        hz_value =0;
+        }
+      
       }
+
+//----------------------------------------
     if(selector_menu == 1){
       value = analogRead(analogPin); 
-      duty_cycle = map(value, 0, 1023, 0, MAX_DUTY);
+      duty_cycle = map(value, 100, 1023, 0, 80);
+      if(duty_cycle < 10){
+        lcd.setCursor(14, 0);
+        lcd.print(" ");
+        }
+      if(duty_cycle < 0){
+        duty_cycle =0;
+        }
       }
+
+//----------------------------------------      
     if(selector_menu == 2){
       // Test duration
+      
+      value = analogRead(analogPin); 
+      test_secs = map(value, 100, 1020, 0, 61);
+      if(test_secs < 10){
+        lcd.setCursor(4, 1);
+        lcd.print(" ");
+        }
+      if(test_secs < 0){
+        test_secs =0;
+        }
       }
+      
+//----------------------------------------      
+    if(selector_menu == 3){
+      //lcd.createChar(0,selected_option);
+      
+      
+      if(digitalRead(ok_button) == HIGH){
+        selector_menu++;
+        delay(250);
+        //RUN THE TEST
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("STARTING TEST");
+        delay(1000);
+        lcd.setCursor(0, 1);
+        lcd.print("3");
+        delay(1000);
+        lcd.setCursor(0, 1);
+        lcd.print("2");
+        delay(1000);
+        lcd.setCursor(0, 1);
+        lcd.print("1");
+        delay(1000);
+        // ----------------------------------------
+        test(test_secs, hz_value, rpm_engine, duty_cycle);
+        // ----------------------------------------
+        selector_menu = 0;
+        lcd.clear();
+      }
+      }      
+//----------------------------------------
+    if(selector_menu == 0){
+      lcd.setCursor(0, 0);
+      lcd.write(0);
+      lcd.setCursor(9, 0);
+      lcd.print(" ");
+      lcd.setCursor(0, 1);
+      lcd.print(" ");
+      lcd.setCursor(10, 1);
+      lcd.print(" ");
+      }
+
+      if(selector_menu == 1){
+      lcd.setCursor(0, 0);
+      lcd.print(" ");
+      lcd.setCursor(9, 0);
+      lcd.write(0);
+      lcd.setCursor(0, 1);
+      lcd.print(" ");
+      lcd.setCursor(10, 1);
+      lcd.print(" ");
+      }
+
+      if(selector_menu == 2){
+      lcd.setCursor(0, 0);
+      lcd.print(" ");
+      lcd.setCursor(9, 0);
+      lcd.print(" ");
+      lcd.setCursor(0, 1);
+      lcd.write(0);
+      lcd.setCursor(10, 1);
+      lcd.print(" ");
+      }
+
+      if(selector_menu == 3){
+      lcd.setCursor(0, 0);
+      lcd.print(" ");
+      lcd.setCursor(9, 0);
+      lcd.print(" ");
+      lcd.setCursor(0, 1);
+      lcd.print(" ");
+      lcd.setCursor(10, 1);
+      lcd.write(0);
+      }
+      
+//----------------------------------------
+        
   }
