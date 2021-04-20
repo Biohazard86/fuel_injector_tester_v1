@@ -41,17 +41,17 @@ void setup() {
   pinMode(next_button, INPUT);
   pinMode(ok_button, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(next_button), add_next_button, RISING);
-  attachInterrupt(digitalPinToInterrupt(ok_button), add_ok_button, RISING);
+  //attachInterrupt(digitalPinToInterrupt(next_button), add_next_button, RISING);
+  //attachInterrupt(digitalPinToInterrupt(ok_button), add_ok_button, RISING);
 
   //Inicializate the LCD
   lcd.init();
   // Turn on the backligth screen
   lcd.backlight();
   // Print in the Screen:
-  lcd.setCursor(4, 0);
+  lcd.setCursor(2, 0);
   lcd.print("Biohazard86");
-  lcd.setCursor(2, 1);
+  lcd.setCursor(0, 1);
   lcd.print("Injector tester");
   delay(3000);  //Sleep 3 secs
   
@@ -294,8 +294,15 @@ int run_test_secs(int start, int hz_value, int rpm_engine, int duty_cycle, int s
   }
 
 // ------------------------------------------------------------------
-//The loop function
+void show_menu(){
+  lcd.setCursor(0, 0);
+  lcd.print("HZ " + hz_value);
+  
+  }
 
+// ------------------------------------------------------------------
+//The loop function
+/*
 void loop() {
   
 
@@ -356,3 +363,31 @@ void loop() {
   start=change_to_false(start);
 
 }
+
+*/
+
+
+void loop() {
+  rpm_engine = hz_to_rpm_conversion();
+  show_menu();
+
+  if(digitalRead(next_button) == HIGH){
+    selector_menu++;
+    }
+
+    if(selector_menu == 3){
+      selector_menu = 0;
+      }
+
+   if(selector_menu == 0){
+      value = analogRead(analogPin); 
+      hz_value = map(value, 0, 1023, 0, (MAX_RPM/60));
+      }
+    if(selector_menu == 1){
+      value = analogRead(analogPin); 
+      duty_cycle = map(value, 0, 1023, 0, MAX_DUTY);
+      }
+    if(selector_menu == 2){
+      // Test duration
+      }
+  }
