@@ -1,2 +1,3 @@
-# fuel_injector_tester_v1
-Arduino based fuel injector tester
+CHECK THE WIKI PAGE 
+
+https://github.com/Biohazard86/fuel_injector_tester_v1/wiki
