@@ -277,7 +277,7 @@ void test(int secs, int hz, int rpm, int dc){
   
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("RUNING TEST");
+  lcd.print("RUNNING TEST");
   lcd.setCursor(0, 1);
   lcd.print(secs);
   lcd.setCursor(3, 1);
